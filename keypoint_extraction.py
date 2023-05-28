@@ -116,7 +116,7 @@ def calculate_mouth_curvature(landmarks, frame):
 
     return is_smile, curr_mouth
             
-def gesture_analysis(video_cut):
+def process_keypoints(video_cut):
     openness = []
     openness_value = 0
     leaning_dir = None
