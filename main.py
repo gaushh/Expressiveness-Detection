@@ -92,7 +92,7 @@ def main():
 
     # Video upload and processing
     st.subheader("Upload and Process Video")
-    uploaded_file = st.file_uploader("Upload a video file (max 10 seconds)", type=["mp4", "mov"])
+    uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "mov"])
 
     speaker_name = st.text_input("Speaker Name")
 

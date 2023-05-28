@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from scipy.spatial import ConvexHull
-
+import os
 def euclidean_distance(p1, p2):
     return np.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
 
@@ -114,8 +114,9 @@ def calculate_mouth_curvature(landmarks, frame):
     else:
         is_smile = False
 
-    return is_smile, curr_mouth
+    return is_smile
             
+
 def process_keypoints(video_cut):
     openness = []
     openness_value = 0
@@ -147,11 +148,16 @@ def process_keypoints(video_cut):
     
     frame_interval = round(fps / 10)
     
-    # Initialize the VideoWriter(output)
-    video_out = 'result/out.mp4'
+    # Specify the file path
+    video_out = 'results/res.mp4'
+
+    # Remove the file if it exists
+    if os.path.exists(video_out):
+        os.remove(video_out)
+
     mp_drawing = mp.solutions.drawing_utils
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # You can also use "XVID" or "MJPG" for AVI files
-    out = cv2.VideoWriter(video_out, fourcc, fps, (width, height))
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # try another codec
+    out = cv2.VideoWriter(video_out, fourcc, fps, (1280, 720))  # do not decrease fps
     
     ## Holistic
     prev_landmarks = None
@@ -262,5 +268,6 @@ def process_keypoints(video_cut):
         values['time_head_up'] = head_v_up / num_frames_with_person
         values['time_head_down'] = head_v_down / num_frames_with_person
         values['time_smile'] = num_smile / num_frames_with_person
-    out.release()   
+    out.release()  
+    cap.release()  
     return values
