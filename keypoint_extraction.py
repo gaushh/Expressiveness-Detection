@@ -42,10 +42,12 @@ def leaning_direction(holistic_landmarks, mp_holistic):
     
     avg_hip_z = (left_hip.z + right_hip.z) / 2
 
-    if nose.z < avg_hip_z:
+    if (avg_hip_z - nose.z) > 0.1:
         return "BACKWARD"
-    else:
+    elif (nose.z - avg_hip_z) > 0.1:
         return "FORWARD"
+    else:
+        return "NOT LEANING"
     
 def head_direction(prev, curr, image, mp_holistic):
     image_h, image_w, _ = image.shape
@@ -116,7 +118,6 @@ def calculate_mouth_curvature(landmarks, frame):
 
     return is_smile
             
-
 def process_keypoints(video_cut):
     openness = []
     openness_value = 0
@@ -148,16 +149,17 @@ def process_keypoints(video_cut):
     
     frame_interval = round(fps / 10)
     
+    # Initialize the VideoWriter(output)
+    
+
     # Specify the file path
     video_out = 'results/res.mp4'
 
-    # Remove the file if it exists
-    if os.path.exists(video_out):
-        os.remove(video_out)
-
+    # Remove the file
+    os.remove(video_out)
     mp_drawing = mp.solutions.drawing_utils
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # try another codec
-    out = cv2.VideoWriter(video_out, fourcc, fps, (1280, 720))  # do not decrease fps
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")  # You can also use "XVID" or "MJPG" for AVI files
+    out = cv2.VideoWriter(video_out, fourcc, fps, (width, height))
     
     ## Holistic
     prev_landmarks = None
@@ -232,34 +234,34 @@ def process_keypoints(video_cut):
                 num_frames_with_person += 1
                 prev_landmarks = results.pose_landmarks
                 
-                cv2.putText(frame, f"Cumulative Total Movement: {total_movement:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Openness: {openness_value:.2f}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Leaning: {leaning_dir}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(frame, f"Cumulative Total Movement: {total_movement:.2f}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Openness: {openness_value:.2f}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Leaning: {leaning_dir}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
-                cv2.putText(frame, f"Head Horizontal: {head_horizontal}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-                cv2.putText(frame, f"Head Vertical: {head_vertical}", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                cv2.putText(frame, f"Head Horizontal: {head_horizontal}", (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Head Vertical: {head_vertical}", (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
-                cv2.putText(frame, f"Is Smile: {is_smile}", (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                cv2.putText(frame, f"Is Smile: {is_smile}", (10, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
             else:
-                cv2.putText(frame, "NO PERSON DETECTED", (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+                cv2.putText(frame, "NO PERSON DETECTED", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
         else:
             if results.pose_landmarks:
                 mp_drawing.draw_landmarks(frame, prev_landmarks, mp_holistic.POSE_CONNECTIONS)
                 
-                cv2.putText(frame, f"Cumulative Total Movement: {total_movement:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Openness: {openness_value:.2f}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Leaning: {leaning_dir}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 255), 2)
+                cv2.putText(frame, f"Cumulative Total Movement: {total_movement:.2f}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Openness: {openness_value:.2f}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Leaning: {leaning_dir}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
-                cv2.putText(frame, f"Head Horizontal: {head_horizontal}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 0), 2)
-                cv2.putText(frame, f"Head Vertical: {head_vertical}", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 0), 2)
+                cv2.putText(frame, f"Head Horizontal: {head_horizontal}", (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.putText(frame, f"Head Vertical: {head_vertical}", (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
-                cv2.putText(frame, f"Is Smile: {is_smile}", (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 0), 2)
+                cv2.putText(frame, f"Is Smile: {is_smile}", (10, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
             else:
-                cv2.putText(frame, "NO PERSON DETECTED", (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 1.7, (255, 255, 0), 2)
+                cv2.putText(frame, "NO PERSON DETECTED", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
         out.write(frame)
     values = {}
     if num_frames_with_person != 0:
-        values['total_movement'] = total_movement
+        values['total_movement'] = total_movement / num_frames_with_person
         values['avg_openness'] = np.mean(openness)
         values['time_leaning_forward'] = leaning_forward / num_frames_with_person
         values['time_leaning_backward'] = leaning_backward / num_frames_with_person
@@ -268,6 +270,5 @@ def process_keypoints(video_cut):
         values['time_head_up'] = head_v_up / num_frames_with_person
         values['time_head_down'] = head_v_down / num_frames_with_person
         values['time_smile'] = num_smile / num_frames_with_person
-    out.release()  
-    cap.release()  
+    out.release()   
     return values

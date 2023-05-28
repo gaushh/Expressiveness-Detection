@@ -10,13 +10,13 @@ def fetch_feature_data():
 
 # Function to save the updated feature data to the CSV file
 def save_feature_data(feature_data):
-    df = pd.DataFrame(feature_data, columns=['total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down', 'speaker_name'])
+    df = pd.DataFrame(feature_data, columns=['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down'])
     df.to_csv('data.csv', index=False)  # Replace 'data.csv' with the path to your CSV file
 
 # Function to display the feature data table
 def display_feature_table():
     feature_data = fetch_feature_data()
-    df = pd.DataFrame(feature_data, columns=['total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down', 'speaker_name'])
+    df = pd.DataFrame(feature_data, columns=['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down'])
     st.subheader("Feature Data")
     st.dataframe(df)
 
@@ -76,10 +76,10 @@ def process_uploaded_video(uploaded_file, speaker_name):
 
     # Append the keypoints data to the feature data
     feature_data = fetch_feature_data()
-    feature_data.append([keypoints_data['total_movement'], keypoints_data['avg_openness'],
+    feature_data.append([speaker_name, keypoints_data['total_movement'], keypoints_data['avg_openness'],
                          keypoints_data['time_leaning_forward'], keypoints_data['time_leaning_backward'],
                          keypoints_data['time_head_right'], keypoints_data['time_head_left'],
-                         keypoints_data['time_head_up'], keypoints_data['time_head_down'], speaker_name])
+                         keypoints_data['time_head_up'], keypoints_data['time_head_down']])
 
     # Save the updated feature data to the CSV file
     save_feature_data(feature_data)
@@ -102,7 +102,7 @@ def main():
 
         # Plot metrics against the database metrics
         feature_data = fetch_feature_data()
-        metric_names = ['total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down', 'speaker_name']
+        metric_names = ['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down']
 
         for metric_name in metric_names:
             metric_values = [row[1] for row in feature_data if row[-1] == speaker_name]
