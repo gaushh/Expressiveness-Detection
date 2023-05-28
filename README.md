@@ -27,12 +27,12 @@ Expressiveness Detection is a project that aims to analyze and measure the expre
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/your-username/expressiveness-detection.git
+   git clone https://github.com/gaushh/Expressiveness-Detection.git
 
 2. Navigate to the project directory:
 
 	```shell
-	cd expressiveness-detection
+	cd Expressiveness-Detection
 
 3. Install the required dependencies:
 
@@ -40,17 +40,13 @@ Expressiveness Detection is a project that aims to analyze and measure the expre
 	pip install -r requirements.txt
 
 4. Usage
-	- Prepare the video data:
-		- Place the video files you want to analyze in a directory.
-		- Update the path to the video directory in the main.py file.
-
 	- Run the application:
 		```shell
-		python main.py
+		streamlit run main.py
 
 	- Upload a video file:
 		- Click on the "Upload a video file" button in the Streamlit application.
-		- Select a video file (maximum duration of 10 seconds) for analysis.
+		- Select a video file for analysis.
 		- Enter the name of the speaker.
 
 	- View the results:
