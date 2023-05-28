@@ -23,7 +23,6 @@ def display_feature_table():
 # Function to display the metric chart
 def display_metric_chart(metric_name, metric_values):
     print(metric_name, metric_values)
-    print("_____________")
     st.subheader(metric_name)
     df = pd.DataFrame({metric_name: metric_values})
     st.bar_chart(df)
@@ -111,8 +110,16 @@ def main():
             # display_metric_chart(metric_name, metric_values)
 
     # Display the feature data table
-    display_feature_table()
     display_speaker_metrics()
+
+    display_feature_table()
+    st.subheader("Processed Video")
+    video_path = "results/res.mp4"
+    # Display the video
+    video_file = open(video_path, "rb")
+    video_bytes = video_file.read()
+    st.video(video_bytes)
+
 
 if __name__ == "__main__":
     main()
