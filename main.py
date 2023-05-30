@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 from keypoint_extraction import process_keypoints
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # Function to fetch feature data from the CSV file
 def fetch_feature_data():
@@ -9,14 +11,14 @@ def fetch_feature_data():
     return df.values.tolist()
 
 # Function to save the updated feature data to the CSV file
-def save_feature_data(feature_data):
-    df = pd.DataFrame(feature_data, columns=['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down'])
+def save_feature_data(feature_data, columns):
+    df = pd.DataFrame(feature_data, columns=columns)
     df.to_csv('data.csv', index=False)  # Replace 'data.csv' with the path to your CSV file
 
 # Function to display the feature data table
-def display_feature_table():
+def display_feature_table(columns):
     feature_data = fetch_feature_data()
-    df = pd.DataFrame(feature_data, columns=['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down'])
+    df = pd.DataFrame(feature_data, columns=columns)
     st.subheader("Feature Data")
     st.dataframe(df)
 
@@ -27,23 +29,13 @@ def display_metric_chart(metric_name, metric_values):
     df = pd.DataFrame({metric_name: metric_values})
     st.bar_chart(df)
 
-
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# Function to fetch feature data from the CSV file
-
-import pandas as pd
-import plotly.graph_objects as go
-import streamlit as st
-
 def display_speaker_metrics():
     feature_data = pd.read_csv('data.csv')  # Replace 'data.csv' with the path to your CSV file
     # Get unique speaker names
     speaker_names = feature_data['speaker_name'].unique()
 
-    for metric in feature_data.columns[:-1]:  # Exclude 'speaker_name'
+    # get columns except the first one 
+    for metric in feature_data.columns[1:]:  # Exclude 'speaker_name'
         fig = go.Figure()
         fig.update_layout(
             xaxis=dict(title='Speaker Name'),
@@ -64,7 +56,7 @@ def display_speaker_metrics():
 
 
 # Function to save the uploaded video as a temp file and process the keypoints
-def process_uploaded_video(uploaded_file, speaker_name):
+def process_uploaded_video(uploaded_file, speaker_name, columns):
     temp_file_path = os.path.join(os.getcwd(), 'temp_video.mp4')
     with open(temp_file_path, 'wb') as temp_file:
         temp_file.write(uploaded_file.read())
@@ -76,13 +68,12 @@ def process_uploaded_video(uploaded_file, speaker_name):
 
     # Append the keypoints data to the feature data
     feature_data = fetch_feature_data()
-    feature_data.append([speaker_name, keypoints_data['total_movement'], keypoints_data['avg_openness'],
-                         keypoints_data['time_leaning_forward'], keypoints_data['time_leaning_backward'],
-                         keypoints_data['time_head_right'], keypoints_data['time_head_left'],
-                         keypoints_data['time_head_up'], keypoints_data['time_head_down']])
-
+    row_data = []
+    for column in columns:
+        row_data.append(keypoints_data[column])
+    feature_data.append(row_data)
     # Save the updated feature data to the CSV file
-    save_feature_data(feature_data)
+    save_feature_data(feature_data, columns)
 
     return keypoints_data
 
@@ -95,24 +86,30 @@ def main():
     uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "mov"])
 
     speaker_name = st.text_input("Speaker Name")
-
+    columns = ["speaker_name", 
+                   "avg_total_movement", 
+                   "avg_openness", 
+                   "percentage_body_turn_left", 
+                   "percentage_body_turn_right", 
+                   "percentage_body_turn_front", 
+                   "percentage_body_turn_back", 
+                   "percentage_smile", 
+                   "percentage_neutral"]
     if uploaded_file is not None and speaker_name != "":
         # Process keypoints using FastAPI
-        keypoints_data = process_uploaded_video(uploaded_file, speaker_name)
+        keypoints_data = process_uploaded_video(uploaded_file, speaker_name, columns)
 
         # Plot metrics against the database metrics
         feature_data = fetch_feature_data()
-        metric_names = ['speaker_name','total_movement', 'avg_openness', 'time_leaning_forward', 'time_leaning_backward', 'time_head_right', 'time_head_left', 'time_head_up', 'time_head_down']
-
-        for metric_name in metric_names:
+        
+        for metric_name in columns:
             metric_values = [row[1] for row in feature_data if row[-1] == speaker_name]
             metric_values.append(keypoints_data[metric_name])
             # display_metric_chart(metric_name, metric_values)
 
     # Display the feature data table
     display_speaker_metrics()
-
-    display_feature_table()
+    display_feature_table(columns)
     st.subheader("Processed Video")
     video_path = "results/res.mp4"
     # Display the video
