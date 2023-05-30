@@ -69,28 +69,28 @@ def calculate_expression(landmarks, frame):
     else:
         return "NEUTRAL"
     
-def body_orientation(holistic_landmarks, mp_holistic):
+def body_orientation(holistic_landmarks, mp_holistic, max):
     # Check if the person is facing forward
-    left_eye = holistic_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_EYE]
-    right_eye = holistic_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_EYE]
-    left_elbow = holistic_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_ELBOW]
-    right_elbow = holistic_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_ELBOW]
+    # left_eye = holistic_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_EYE]
+    # right_eye = holistic_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_EYE]
+    left_shoulder = holistic_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER]
+    right_shoulder = holistic_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_SHOULDER]
+    # left_elbow = holistic_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_ELBOW]
+    # right_elbow = holistic_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_ELBOW]
     nose = holistic_landmarks.landmark[mp_holistic.PoseLandmark.NOSE]
-   
-    if left_elbow.visibility >= 0.5 and right_elbow.visibility >= 0.5 and nose.visibility == 1:
-        return 'FORWARD'
-    elif left_elbow.visibility < 0.5 and right_elbow.visibility >= 0.5 and nose.visibility == 1:
-        return 'LEFT'
-    elif right_elbow.visibility < 0.5 and left_elbow.visibility >= 0.5 and nose.visibility == 1:
-        return 'RIGHT'
-    elif left_elbow.visibility >= 0.5 and right_elbow.visibility >= 0.5 and nose.visibility < 1:
+    if (left_shoulder.x - right_shoulder.x) < 0:
         return 'BACKWARD'
+    elif abs(left_shoulder.x - right_shoulder.x) < 0.5 * max:
+        return 'TURNED'
+    else:
+        return 'FORWARD'
         
 def process_keypoints(video_cut):
     # Initialize variables
     frame_number = 0
     num_frames_with_person = 0
     num_frames_with_face = 0
+    max_distance_between_shoulders = 0
 
     prev_landmarks = None
     prev_face_landmarks = None 
@@ -105,8 +105,7 @@ def process_keypoints(video_cut):
     # Output on chart variables 
     openness = []
     body_front = 0
-    body_left = 0
-    body_right = 0
+    body_turning = 0
     body_back = 0 
     num_smile = 0 
     num_sad = 0
@@ -117,7 +116,7 @@ def process_keypoints(video_cut):
     mp_holistic = mp.solutions.holistic
     mp_face_mesh = mp.solutions.face_mesh
 
-    holistic = mp_holistic.Holistic(static_image_mode=False, min_detection_confidence=0.1, min_tracking_confidence=0.1)
+    holistic = mp_holistic.Holistic(static_image_mode=False, min_detection_confidence=0.8, min_tracking_confidence=0.8)
     face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.1)
     
     mp_drawing = mp.solutions.drawing_utils
@@ -160,6 +159,13 @@ def process_keypoints(video_cut):
                 current = results.pose_landmarks
                 mp_drawing.draw_landmarks(frame, current, mp_holistic.POSE_CONNECTIONS)
                 
+                left_shoulder = results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER]
+                right_shoulder = results.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_SHOULDER]
+                # get the absolute distance between the shoulders
+                distance_between_shoulders = abs(left_shoulder.x - right_shoulder.x)
+                if distance_between_shoulders > max_distance_between_shoulders:
+                    max_distance_between_shoulders = distance_between_shoulders
+                
                 # Calculate the total movement
                 if prev_landmarks:
                     frame_movement = 0
@@ -170,28 +176,20 @@ def process_keypoints(video_cut):
                         total_movement += frame_movement
 
                 # Calculate body orientation 
-                # body_o = body_orientation(results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER], results.pose_landmarks.landmark[mp_holistic.PoseLandmark.RIGHT_SHOULDER], face_results)
-                body_o = body_orientation(results.pose_landmarks, mp_holistic)
+                body_o = body_orientation(results.pose_landmarks, mp_holistic, max_distance_between_shoulders)
                 if body_o == 'FORWARD':
                     body_front += 1
-                    # Calculate the openness of the pose
                     openness_value = pose_openness(results.pose_landmarks, frame_rgb, mp_holistic)
                     openness.append(openness_value)
-                elif body_o == 'LEFT':
-                    body_left += 1 
-                    openness_value = -1
-                elif body_o == 'RIGHT':
-                    body_right += 1
+                elif body_o == 'TURNED':
+                    body_turning += 1
                     openness_value = -1
                 elif body_o == 'BACKWARD':
                     body_back += 1
-                    openness_value = pose_openness(results.pose_landmarks, frame_rgb, mp_holistic)
-                    openness.append(openness_value)
+                    openness_value = -1
 
                 # Calculate for facial expression 
                 if face_results.multi_face_landmarks:
-                    print('face')
-                    print(num_frames_with_face)
                     num_frames_with_face += 1
                     face_landmarks = face_results.multi_face_landmarks[0].landmark
                     facial_e = calculate_expression(face_landmarks, frame)
@@ -215,10 +213,10 @@ def process_keypoints(video_cut):
                 cv2.putText(frame, f"Current Body Orientation: {body_o}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (22, 61, 231), 2)
                 cv2.putText(frame, f"Current Facial Expression: {facial_e}", (10, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (22, 61, 231), 2)
 
-                for id, lm in enumerate(results.pose_landmarks.landmark):
-                    h, w, c = frame.shape
-                    cv2.putText(frame, f'Landmark {id}: x={lm.x:.2f}, y={lm.y:.2f}, z={lm.z:.2f}, visibility={lm.visibility:.2f}', 
-                                (w-600, 20*(id+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1)
+                # for id, lm in enumerate(results.pose_landmarks.landmark):
+                #     h, w, c = frame.shape
+                #     cv2.putText(frame, f'Landmark {id}: x={lm.x:.2f}, y={lm.y:.2f}, z={lm.z:.2f}, visibility={lm.visibility:.2f}', 
+                #                 (w-600, 20*(id+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1)
             else:
                 cv2.putText(frame, "NO PERSON DETECTED", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (231, 22, 22), 2)
         else:
@@ -240,20 +238,14 @@ def process_keypoints(video_cut):
     if num_frames_with_person != 0:
         values['avg_total_movement'] = total_movement / num_frames_with_person
         values['avg_openness'] = np.mean(openness)
-        values['percentage_body_turn_left'] = body_left / num_frames_with_person
-        values['percentage_body_turn_right'] = body_right / num_frames_with_person
+        values['percentage_body_turning'] = body_turning / num_frames_with_person
         values['percentage_body_turn_front'] = body_front / num_frames_with_person
         values['percentage_body_turn_back'] = body_back / num_frames_with_person
-    print(num_frames_with_face)
-    print(num_smile)
-    print(num_neutral)
     if num_frames_with_face != 0:
         values['percentage_smile'] = num_smile / num_frames_with_face
         values['percentage_neutral'] = num_neutral / num_frames_with_face
-        # values['percentage_sad'] = num_sad / num_frames_with_face
     else:
         values['percentage_smile'] = 0
         values['percentage_neutral'] = 0
-        # values['percentage_sad'] = 0
     out.release()   
     return values
